@@ -25,10 +25,10 @@ f_helper <- function(x) {
 
 highest_par_val = c(0,0)
 
-for (i in seq(-115,115,20))
+for (i in seq(-120, 120, 20))
 {
   Sys.sleep(1)
-  for (j in seq(-115,115,20))
+  for (j in seq(-120, 120, 20))
    {
     local_max <- optim(c(i,j), fn = f_helper, control = list(fnscale = -1))
     pars <- local_max$par
