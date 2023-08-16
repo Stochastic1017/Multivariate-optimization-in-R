@@ -9,4 +9,4 @@ The code does the following:
 * Uses Nelder-Mead numerical optimizer to find and mark all local maxima's with a red-dot. `points3d` was used to do this.
 * Finds the global maxima in the interval and marks it with a green-dot.
 
-![](https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Function_image.png)
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Function_image.png" width="500" height="500">
