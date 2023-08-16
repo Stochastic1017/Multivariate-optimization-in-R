@@ -386,4 +386,291 @@ FE_opt
 
 <img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/All_TS.png" width="400" height="300">
 
-# Maximum likelihood estimator (MLE) in logistic regression
+# Optimization for Maximum Likelihood Estimation
+
+## MLE for mean and standard deviation of a random sample from $N(\mu, \sigma)$
+
+Here we’ll use optimization to confirm that, given a simple random
+sample $X_1, \ldots, X_n \sim N(\mu, \sigma^2)$, the maximum-likelihood
+estimates for the unknown mean $\mu$ and standard deviation $\sigma$ are
+
+$$\mu = \frac{1}{n} \sum_{i=1}^n X_i$$
+
+and
+
+$$\sigma = \sqrt{\frac{1}{n} \sum_{i=1}^n (X_i - \mu)^2}$$
+
+Since each $X_i \sim N(\mu, \sigma^2)$ has the probability density
+function
+
+$$f(x_i; \mu, \sigma) = \frac{1}{\sqrt{2 \pi} \sigma} \exp\left(-\frac{(x_i - \mu)^2}{2 \sigma^2}\right)$$
+
+``` r
+## Function for Normal Probability Density Function
+norm_pdf = function(x, mean, sd)
+{
+  return(1/(sqrt(2*pi)*sd) * exp((-1/(2*sd^2))*(x - mean)^2))
+}
+```
+
+and the $X_i$’s are independent, the density function for the sample is
+
+$$f(x_1, \ldots, x_n; \mu; \sigma) = \prod_{i=1}^n f(x_i; \mu, \sigma) = \left(\frac{1}{\sqrt{2 \pi} \sigma}\right)^n \exp\left(-\frac{1}{{2 \sigma^2}} \sum_{i=1}^n (x_i - \mu)^2\right)$$
+
+If we now consider the sample $(x_1, \ldots, x_n)$ as fixed, then
+$f(x_1, \ldots, x_n; \mu; \sigma)$ can be regarded as a function of
+$\mu$ and $\sigma$ called the likelihood, $L$:
+
+$$L(\mu, \sigma; x_1, \ldots, x_n) = f(x_1, \ldots, x_n; \mu; \sigma)$$
+
+We want to use optimization to find the $(\mu, \sigma)$ pair that
+maximizes $L(\mu, \sigma; x_1, \ldots, x_n)$. However, computing $L$ is
+problematic because its product of small numbers often leads to
+underflow, in which the product is closer to zero than a computer can
+represent with the usual floating-point arithmetic. Taking logarithms
+addresses this problem by transforming products of very small positive
+numbers to sums of moderate negative numbers. For example, $10^{-10}$ is
+very small, but $\log(10^{-10}) \approx -23.03$ is moderate. With this
+in mind, the log likelihood $l$ is
+
+$$l(\mu, \sigma; x_1, \ldots, x_n) = \log\left(L(\mu, \sigma; x_1, \ldots, x_n)\right) = n \log\left(\frac{1}{\sqrt{2 \pi} \sigma}\right) -\frac{1}{{2 \sigma^2}} \sum_{i=1}^n (x_i - \mu)^2$$
+
+``` r
+## Log Likelihood Function where par = c(mean, sd)
+Log.Lik = function(par, x)
+{
+  n = length(x)
+  lik1 = n * log(1/(sqrt(2*pi)*par[2]))
+  lik2 =  1/(2*par[2]^2) * sum((x - par[1])^2)
+  
+  return (-(lik1 - lik2)) # Returning negative so as to find maximum
+}
+```
+
+Since the logarithm is an increasing function, the maximum of $l$ occurs
+at the same location $(\mu, \sigma)$ as the maximum of $L$.
+
+### Using `optim()` with its default Nelder-Mead method to find the estimates of $\mu$ and $\sigma$ that maximize $l$ over the data $x_1, \ldots, x_n =$ `mtcars$mpg`
+
+``` r
+## Optimizing Log-Likelihood to find parameter estimates
+opt.par = optim(par = c(.5, .5), 
+             fn = Log.Lik, 
+             x = mtcars$mpg,
+             method = 'Nelder-Mead',
+             upper = Inf,
+             lower = -Inf)
+
+opt.par
+```
+
+    ## $par
+    ## [1] 20.10088  5.94055
+    ## 
+    ## $value
+    ## [1] 102.3779
+    ## 
+    ## $counts
+    ## function gradient 
+    ##       89       NA 
+    ## 
+    ## $convergence
+    ## [1] 0
+    ## 
+    ## $message
+    ## NULL
+
+    ## [1] "The par = (mean, sd) estimations for Log-Likelihood using Nelder-mead is (20.100877, 5.940550)"
+
+### Checking estimates by comparing them to the sample mean and (population) standard deviation.
+
+    ## [1] "The mean and sd estimate using mle and Nelder-Mead optimization is (20.100877, 5.940550)"
+
+    ## [1] "The mean and sd of the data mtcars$mpg is (20.090625, 6.026948)"
+
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Comparing%20Normal%20Dist.png" width="400" height="300">
+
+As our estimated parameters fits very closely to the sample mean and
+population sd under the normal distribution, we can deduce with
+certainty that the MLE for mean and sd of a random distribution is
+approximately the sample mean and population sd.
+
+## MLE for the parameters $\beta_0$ and $\beta_1$ in logistic regression
+
+In simple logistic regression, we have a numeric explanatory variable
+$X$ and binary response variable $Y$ that takes one of two values, 0
+(failure) or 1 (success). We suppose that
+$P(Y=1|X=x) = p(x; \beta_0, \beta_1)$ for some function $p$ of the data
+$x$ and two parameters $\beta_0$ and $\beta_1$, so that
+$P(Y=0|X=x) = 1 - p(x; \beta_0, \beta_1)$.
+
+Given the data $(x_1, y_1), \ldots, (x_n, y_n)$, where each
+$y_i \in \{0, 1\}$, the probability of the data under the model is
+
+$$f(y_1, \ldots, y_n | x_1, \ldots, x_n; \beta_0, \beta_1) = \prod_{i=1}^n p(x_i; \beta_0, \beta_1)^{y_i} (1 - p(x_i; \beta_0, \beta_1))^{1-y_i}$$
+
+A *logistic transformation* maps $p \in [0, 1]$ to
+$\log\left(\frac{p}{1-p}\right)$, whose range is the entire real line.
+We define $p(x; \beta_0, \beta_1)$ implicitly by requiring its logistic
+transformation to be linear:
+
+$$\log\left(\frac{p(x; \beta_0, \beta_1)}{1-p(x; \beta_0, \beta_1)}\right) = \beta_0 + \beta_1 x$$
+
+Solving for $p(x; \beta_0, \beta_1)$ gives
+
+$$p(x; \beta_0, \beta_1) = \frac{1}{1 + \exp(-(\beta_0 + \beta_1 x))}$$
+
+which is called the sigmoid function.
+
+``` r
+## Function for p(x;par) where par = c(beta0, beta1)
+sigmoid = function(par, x)
+{
+  return ( 1/(1 + exp(-par[1] - par[2]*x)) )
+}
+```
+
+The likelihood of $(\beta_1, \beta_1)$ given the data is then
+
+$$L(\beta_0, \beta_1; x_1, \ldots, x_n, y_1, \ldots, y_n) = \prod_{i=1}^n \left(\frac{1}{1 + \exp(-(\beta_0 + \beta_1 x_i))}\right)^{y_i} \left(1 - \frac{1}{1 + \exp(-(\beta_0 + \beta_1 x_i))}\right)^{1-y_i}$$
+
+and the log likelihood is (after a few lines of work)
+$$l(\beta_0, \beta_1; x_1, \ldots, x_n, y_1, \ldots, y_n) = -\sum_{i=1}^n \log(1 + \exp(\beta_0 + \beta_1 x_i)) + \sum_{i=1}^n y_i (\beta_0 + \beta_1 x_i)$$
+
+``` r
+Log.Lik = function(par, x, y)
+{
+  p = sigmoid(par, x)
+  return ( -sum(y*log(p) + (1-y)*log(1-p)) )
+}
+```
+
+Consider the `menarche` data frame in the `MASS` package
+(`require("MASS"); ?menarche`). It gives proportions of girls at various
+ages who have reached menarche.
+
+    ##      Age Total Menarche
+    ## 1   9.21   376        0
+    ## 2  10.21   200        0
+    ## 3  10.58    93        0
+    ## 4  10.83   120        2
+    ## 5  11.08    90        2
+    ## 6  11.33    88        5
+    ## 7  11.58   105       10
+    ## 8  11.83   111       17
+    ## 9  12.08   100       16
+    ## 10 12.33    93       29
+    ## 11 12.58   100       39
+    ## 12 12.83   108       51
+    ## 13 13.08    99       47
+    ## 14 13.33   106       67
+    ## 15 13.58   105       81
+    ## 16 13.83   117       88
+    ## 17 14.08    98       79
+    ## 18 14.33    97       90
+    ## 19 14.58   120      113
+    ## 20 14.83   102       95
+    ## 21 15.08   122      117
+    ## 22 15.33   111      107
+    ## 23 15.58    94       92
+    ## 24 15.83   114      112
+    ## 25 17.58  1049     1049
+
+The first row says “0 out of 376 girls with average age 9.21 have
+reached menarche.” The tenth row says “29 out of 93 girls with average
+age 12.33 have reached menarche.” The last row says “1049 out of 1049
+girls with average age 17.58 have reached menarche.”
+
+Here I’ll make a second data frame called `menarche.cases` from
+`menarche` that gives one line for each girl in the study indicating her
+age and whether (1) or not (0) she has reached menarche.
+
+``` r
+success.indices = rep(x=seq_len(nrow(menarche)), times=menarche$Menarche)
+success.ages = menarche$Age[success.indices]
+success = data.frame(age=success.ages, reached.menarche=1)
+failure.indices = rep(x=seq_len(nrow(menarche)), times=menarche$Total - menarche$Menarche)
+failure.ages = menarche$Age[failure.indices]
+failure = data.frame(age=failure.ages, reached.menarche=0)
+menarche.cases = rbind(success, failure)
+menarche.cases = menarche.cases[order(menarche.cases$age), ]
+rownames(menarche.cases) = NULL # Remove incorrectly ordered rownames; they get restored correctly.
+```
+       ## # A tibble: 25 × 3
+    ##      Age Total Menarche
+    ##    <dbl> <dbl>    <dbl>
+    ##  1  9.21   376        0
+    ##  2 10.2    200        0
+    ##  3 10.6     93        0
+    ##  4 10.8    120        2
+    ##  5 11.1     90        2
+    ##  6 11.3     88        5
+    ##  7 11.6    105       10
+    ##  8 11.8    111       17
+    ##  9 12.1    100       16
+    ## 10 12.3     93       29
+    ## # ℹ 15 more rows
+
+### Use `optim()` with its default Nelder-Mead method to find the estimates of $\beta_0$ and $\beta_1$ that maximize $l$ over the data $x_1, \ldots, x_n, y_1, \ldots, y_n =$ `age`, `reached.menarche` from `menarche.cases`. Check your `optim()` estimates by making a graph with these elements:
+
+``` r
+opt.par = optim(par = c(.5, .5),
+                fn = Log.Lik,
+                gr = NULL,
+                x = menarche.cases$age,
+                y = menarche.cases$reached.menarche, 
+                method = 'Nelder-Mead',
+                lower = -Inf,
+                upper = Inf)
+
+opt.par
+```
+
+    ## $par
+    ## [1] -21.220857   1.631518
+    ## 
+    ## $value
+    ## [1] 819.6524
+    ## 
+    ## $counts
+    ## function gradient 
+    ##      109       NA 
+    ## 
+    ## $convergence
+    ## [1] 0
+    ## 
+    ## $message
+    ## NULL
+
+The 3918 points (x=age, y=reached.menarche) from `menarche.cases`. Since
+there are only 25 ages, these points would overlap a lot. To fix the
+overlap, I used `jitter()` to add a little random noise to each vector
+of coordinates. For example, `jitter(c(1, 2, 3))` gives something like
+`c(1.044804, 1.936708, 2.925454)`.
+
+``` r
+## The 3918 points (x=age, y=reached.menarche) from menarche.cases with jitter
+## to create random noise for age
+x1 = c(jitter(menarche.cases$age))
+y1 = c(menarche.cases$reached.menarche)
+id1 = rep('menarche.cases', nrow(menarche.cases))
+```
+
+The 25 points $(x_i, y_i)$ where $x_i$ is the $i$th age in the original
+`menarche` data frame, and $y_i$ is the proportion of girls of that age
+who have reached menarche.
+
+``` r
+## 25 points (xi, yi) where xi is the ith age in the original menarche data frame, 
+## and yi is the proportion of girls of that age who have reached menarche
+x2 = c(menarche$Age)
+y2 = c()
+
+for (i in 1:nrow(menarche))
+{
+  y2 = append(y2, 1/menarche[i,]$Total * menarche[i,]$Menarche)
+}
+
+id2 = rep('menarch', nrow(menarche))
+```
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Fitting%20Logistic%20Curve.png" width="400" height="300">
