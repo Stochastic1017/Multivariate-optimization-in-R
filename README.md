@@ -41,6 +41,8 @@ all U.S. states:
     ## 10 Georgia      57906 16094
     ## # ℹ 40 more rows
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Scatterplot_farmland.png" width="400" height="300">
+
 ## Explanation
 
 We want to build a regression model for `farm`, explained by `land`, but
@@ -157,6 +159,8 @@ beta_lm = c(beta_0, beta_1)
 
     ## [1] "The Beta coefficient vector for Normal Least Squares Regression line using lm is (18452.421461, 0.145676)"
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/SSE.png" width="400" height="300">
+
 ### Estimating $\beta_0$ and $\beta_1$ using the Nelder-Mead method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
@@ -192,6 +196,8 @@ rlm_nm_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using Nelder-Mead is (0.114955, 0.398889)"
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Nelder_Mead.png" width="400" height="300">
+
 ### Estimating $\beta_0$ and $\beta_1$ using the BFGS method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
@@ -224,6 +230,8 @@ rlm_bfgs_opt
     ## NULL
 
     ## [1] "The Beta coefficient vector for Robust Regression line using BFGS is (5134.209242, 0.324530)"
+
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/BFGS.png" width="400" height="300">
 
 ### Estimating $\beta_0$ and $\beta_1$ using the CG method in `optim()` with the initial parameters `c(0 ,0)`
 
@@ -258,6 +266,8 @@ rlm_cg_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using CG is (0.000334, 0.398933)"
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/CG.png" width="400" height="300">
+
 ### Summary and Conclusion
 
     ##                          method    intercept     slope    values
@@ -266,6 +276,8 @@ rlm_cg_opt
     ## 3          Robust Regression CG    0.3989329 0.3989329 447645463
 
     ## [1] "The method for which the value of Tukey function is the smallest is Robust Regression BFGS with the value 441085792.843601"
+
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/All_Tukey_Lines.png" width="400" height="300">
 
 The SSE loss function is greatly influenced by outliers due to the
 ‘square’ component of errors. Small number outliers will have large
@@ -305,10 +317,12 @@ df1 = data.frame(year = 1912:1971, avg.temp = nhtemp)
     ## 5 1916     49.4
     ## 6 1917     47.9
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Original_TS.png" width="400" height="300">
+
 We want to fit an exponential smoothing model to this data such that
 $\hat{Y}_1 = Y_1$ and, for $i = 2, 3, \ldots, n$,
 
-$$\hat{Y}_i = \beta Y_{i-1} + (1-\beta) \hat{Y}_{i-1}$$
+$$Y_i = \beta Y_{i-1} + (1-\beta) Y_{i-1}$$
 
 where $\beta$ is a constant between 0 and 1.
 
@@ -366,6 +380,10 @@ FE_opt
 
     ## [1] "The value of beta that minimizes forecast error is 0.186081274135334 with the value at 1.27553266171794"
 
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Smoothing_TS.png" width="400" height="300">
+
 ## Reproducing the previous plot, including some other levels of smoothing, with $\beta=0.05$ and $\beta=0.75$
+
+<img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/All_TS.png" width="400" height="300">
 
 # Maximum likelihood estimator (MLE) in logistic regression
