@@ -6,7 +6,7 @@
 * Exponential smoothing for time-series data
 * Maximum likelihood estimator (MLE) in logistic regression
 
-## Visual optimization of a multivariate function:
+# Visual optimization of a multivariate function:
 
 This repository contains R code to optimize and finds all local maxima's for the function:
 $$z = f(x,y) = \big(1 - \frac{x}{k}\big)\big(1 + \frac{x}{k}\big)\big(1 - \frac{y}{k}\big)\big(1 + \frac{y}{k}\big)\bigg[ -(y+47)sin\bigg(\sqrt{|y + \frac{x}{2} + 47|}\bigg) - xsin\big(\sqrt{|x - (y + 47)|}\big) \bigg]$$
@@ -19,9 +19,9 @@ The code does the following:
 
 <img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Function_image.png" width="500" height="500">
 
-## Tukey's robust regression
+# Tukey's robust regression
 
-### Head of Dataset
+## Head of Dataset
 
 Consider the dataset that has the land and farm area in square miles for
 all U.S. states:
@@ -41,7 +41,7 @@ all U.S. states:
     ## 10 Georgia      57906 16094
     ## # ℹ 40 more rows
 
-### Explanation
+## Explanation
 
 We want to build a regression model for `farm`, explained by `land`, but
 we know Alaska is an outlier (and Texas is a leverage point, that is,
@@ -83,7 +83,7 @@ $$
 \frac{\partial}{\partial \beta_1} \text{Tukey}(\beta_0,\beta_1) = - \frac{1}{n} \sum_{i=1}^n x_i \rho\prime (y_i - \beta_0 - \beta_1 x_i)
 $$
 
-### Implementation
+## Implementation
 
 ``` r
 ## Function for Tukey's rho norm given above
@@ -132,7 +132,7 @@ Tukey.gr = function(par, x, y)
 }
 ```
 
-#### Fitting linear least square regression line using `lm()`
+### Fitting linear least square regression line using `lm()`
 
 ``` r
 ## Estimates of ordinary least squares regression line using lm()
@@ -157,7 +157,7 @@ beta_lm = c(beta_0, beta_1)
 
     ## [1] "The Beta coefficient vector for Normal Least Squares Regression line using lm is (18452.421461, 0.145676)"
 
-#### Estimating $\beta_0$ and $\beta_1$ using the Nelder-Mead method in `optim()` with the initial parameters `c(0 ,0)`
+### Estimating $\beta_0$ and $\beta_1$ using the Nelder-Mead method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
 k = 19000
@@ -192,7 +192,7 @@ rlm_nm_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using Nelder-Mead is (0.114955, 0.398889)"
 
-#### Estimating $\beta_0$ and $\beta_1$ using the BFGS method in `optim()` with the initial parameters `c(0 ,0)`
+### Estimating $\beta_0$ and $\beta_1$ using the BFGS method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
 ## Optimizing Tukey using BFGS optimization (gradient used)
@@ -225,7 +225,7 @@ rlm_bfgs_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using BFGS is (5134.209242, 0.324530)"
 
-#### Estimating $\beta_0$ and $\beta_1$ using the CG method in `optim()` with the initial parameters `c(0 ,0)`
+### Estimating $\beta_0$ and $\beta_1$ using the CG method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
 ## Optimizing Tukey using CG optimization (gradient used)
@@ -258,7 +258,7 @@ rlm_cg_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using CG is (0.000334, 0.398933)"
 
-#### Summary and Conclusion
+### Summary and Conclusion
 
     ##                          method    intercept     slope    values
     ## 1 Robust Regression Nelder-Mead    0.1149554 0.3988888 447645184
@@ -286,6 +286,6 @@ in to play as it follows the SSE loss function for small values of $t$
 and constant times $|t|$ for large values of $t$ (large and small values
 determined by $k$ which is fixed).
 
+# Exponential smoothing for time-series data
 
-## Exponential smoothing for time-series data
-## Maximum likelihood estimator (MLE) in logistic regression
+# Maximum likelihood estimator (MLE) in logistic regression
