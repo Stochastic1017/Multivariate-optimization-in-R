@@ -1,0 +1,220 @@
+---
+title: "Exponential_Smoothing"
+author: "S. Sudhir"
+date: "2023-08-16"
+output: 
+  html_document: 
+    toc: yes
+    df_print: tibble
+---
+
+# Exponential smoothing
+
+Consider the `nhtemp` dataset which holds yearly average measurements of temperature for New Hampshire, from 1912 to 1971
+
+```{r}
+library(ggplot2)
+require(datasets)
+df1 = data.frame(year = 1912:1971, avg.temp = nhtemp)
+```
+
+```{r, echo = F}
+df1
+```
+
+```{r, message = F, echo = F}
+ggplot(data = df1, aes(x = year, y = avg.temp)) +
+  
+  ## points of original avg.temp vs year
+  geom_point()+
+  
+  ## Plotting original avg.temp
+  geom_line(data = df1, 
+            aes(x = year, y = avg.temp, 
+            color = "Original Time Series")) +
+  
+  ## Adding Legend
+  scale_color_manual("Legend", breaks = c("Original Time Series"),
+                                values = c("steelblue")) +
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Yearly Average Measurements of Temperature for New Hampshire') + 
+  xlab('Year') + 
+  ylab('Average Temperature') + 
+  
+  ## Setting theme
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+We want to fit an exponential smoothing model to this data such that
+$\hat{Y}_1 = Y_1$ and, for $i = 2, 3, \ldots, n$,
+
+$$\hat{Y}_i = \beta Y_{i-1} + (1-\beta) \hat{Y}_{i-1}$$
+
+where $\beta$ is a constant between 0 and 1.
+
+```{r}
+## Forecast function as given above
+## Estimated parameter: beta
+## Fixed and observable parameter: y
+forecast = function(beta, y)
+{
+  yhat = c()
+  yhat[1] = y[1] # initializing yhat[1]
+  
+  for (i in 2:length(y))
+  {
+    yhat[i] = beta * y[i-1] + (1 - beta) * yhat[i-1] # recursion for yhat[2] on wards
+  }
+  return (yhat)
+}
+```
+
+We will choose the parameter estimate $\hat{\beta}$ that minimizes the mean forecast error
+
+$$FE(\beta) = \frac{1}{n} \sum_{i=2}^n \left( Y_i - \hat{Y}_i \right)^2$$
+
+```{r}
+## Parameter beta estimate which minimizes mean forecast error
+forecast.error = function(beta, y)
+{
+  yhat = forecast(beta, y)
+  return (1/length(y) * sum((y - yhat)^2))
+}
+```
+
+The derivatives of this function are rather complicated (notice that $\hat{Y}_i$ is a function of $\beta$), so let's use a derivative-free method based on the function `optimize()`.
+
+## Using `optimize()` on the interval $[0,1]$, to find the value of $\beta$ that produces the minimum forecast error.
+
+```{r}
+## Finding parameter estimator that minimizes forecast error
+FE_opt = optimize(f = forecast.error,
+                  interval = c(0,1),
+                  tol = 0.0001,
+                  y = df1$avg.temp)
+FE_opt
+```
+
+```{r, echo = F}
+paste0("The value of beta that minimizes forecast error is ", 
+       FE_opt$minimum,
+       " with the value at ", 
+       FE_opt$objective)
+```
+
+```{r, echo=F}
+## Merging original data with forecast using optimum beta found using optimize()
+opt.forecast = forecast(FE_opt$minimum, y = df1$avg.temp)
+df2 = data.frame(df1, opt.forecast)
+```
+
+```{r, message = F, echo=F}
+ggplot(data = df2, aes(x = year, y = avg.temp)) +
+  
+  ## points of original avg.temp vs year
+  geom_point()+
+  
+  ## Plotting original avg.temp
+  geom_line(data = df2, 
+            aes(x = year, y = avg.temp, 
+            color = "Original Time Series")) +
+  
+  ## Plotting exponential smoothing
+  geom_line(data = df2, 
+            aes(x = year, y = opt.forecast, 
+            color = "Exponential Smoothing BFGS")) +
+  
+  ## Adding Legend
+  scale_color_manual("Legend", breaks = c("Original Time Series",
+                                          "Exponential Smoothing BFGS"),
+                                values = c("steelblue", 
+                                           "coral")) +
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Yearly Average Measurements of Temperature for New Hampshire') + 
+  xlab('Year') + 
+  ylab('Average Temperature') + 
+  
+  ## Setting theme
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Reproducing the previous plot, including some other levels of smoothing, with $\beta=0.05$ and $\beta=0.75$
+
+```{r, echo = F}
+## Merging original data with forecast using beta = 0.05 and beta = 0.75
+forecast_b1 = forecast(beta = 0.05, y = df1$avg.temp)
+forecast_b2 = forecast(beta = 0.75, y = df1$avg.temp)
+
+df3 = data.frame(df2, forecast_b1, forecast_b2)
+```
+
+```{r, message = F, echo = F}
+ggplot(data = df3, aes(x = year, y = avg.temp)) +
+  geom_point()+
+  
+  ## Original Time Series
+  geom_line(data = df3, 
+            aes(x = year, 
+                y = avg.temp, 
+                color = "Original Time Series",
+                linetype = "Original Time Series")) +
+  
+  ## Exponential Smoothing BFGS
+  geom_line(data = df3, 
+            aes(x = year, 
+                y = opt.forecast, 
+                color = "Exponential Smoothing BFGS",
+                linetype = "Exponential Smoothing BFGS")) +
+  
+  ## Exponential Smoothing beta: 0.1, color: lightpink, linetype: dashed
+  geom_line(data = df3, 
+            aes(x = year, 
+                y = forecast_b1, 
+                color = "Exponential Smoothing beta = 0.1",
+                linetype = "Exponential Smoothing beta = 0.1")) +
+  
+  ## Exponential Smoothing beta: 0.9, color: seagreen, linetype: dashed
+  geom_line(data = df3, 
+            aes(x = year, 
+                y = forecast_b2, 
+                color = "Exponential Smoothing beta = 0.9",
+                linetype = "Exponential Smoothing beta = 0.9")) +
+  
+  ## Adding Legend
+  scale_color_manual("Legend", breaks = c("Original Time Series",
+                                          "Exponential Smoothing BFGS",
+                                          "Exponential Smoothing beta = 0.1",
+                                          "Exponential Smoothing beta = 0.9"),
+                                values = c("Original Time Series" = "steelblue", 
+                                           "Exponential Smoothing BFGS" = "coral",
+                                           "Exponential Smoothing beta = 0.1" = "lightpink",
+                                           "Exponential Smoothing beta = 0.9" = "seagreen")) +
+  
+  scale_linetype_manual("Legend", breaks = c("Original Time Series",
+                                          "Exponential Smoothing BFGS",
+                                          "Exponential Smoothing beta = 0.1",
+                                          "Exponential Smoothing beta = 0.9"),
+                                values = c("Original Time Series" = "solid", 
+                                           "Exponential Smoothing BFGS" = "solid",
+                                           "Exponential Smoothing beta = 0.1" = "dashed",
+                                           "Exponential Smoothing beta = 0.9" = "dashed")) +
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Yearly Average Measurements of Temperature for New Hampshire') + 
+  xlab('Year') + 
+  ylab('Average Temperature') + 
+  
+  ## Setting theme
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
