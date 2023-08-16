@@ -1,6 +1,6 @@
 The repository contains two instances of optimization using R:
 
-1. Multivariate optimization in R
+1. Multivariate optimization in R:
 
 This repository contains R code to optimize and finds all local maxima's for the function:
 $$z = f(x,y) = \big(1 - \frac{x}{k}\big)\big(1 + \frac{x}{k}\big)\big(1 - \frac{y}{k}\big)\big(1 + \frac{y}{k}\big)\bigg[ -(y+47)sin\bigg(\sqrt{|y + \frac{x}{2} + 47|}\bigg) - xsin\big(\sqrt{|x - (y + 47)|}\big) \bigg]$$
@@ -13,4 +13,4 @@ The code does the following:
 
 <img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Function_image.png" width="500" height="500">
 
-2. 
+2. Optimization of Tukey's robust regression, exponential smoothing for time-series data, maximum likelihood estimator in logistic regression:
