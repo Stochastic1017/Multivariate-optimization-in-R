@@ -1,0 +1,469 @@
+---
+title: "Tukey Robust Regression"
+author: "S. Sudhir"
+date: "2023-08-16"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r, setup = TRUE, include = FALSE}
+knitr::opts_chunk$set(fig.width=9, fig.height=6) 
+
+library(readr)
+library(ggplot2)
+library(ggpubr)
+library(dplyr)
+library(multcomp)
+library(DescTools)
+library(sjPlot)
+library(reshape2) 
+library(MASS)
+
+matrix_1 = matrix(c(1,2,3,4), nrow = 2, ncol = 2)
+matrix_2 = matrix(c(1,2), nrow = 1, ncol = 2)
+```
+
+# Head of Dataset
+
+Consider the dataset that has the land and farm area in square miles for all U.S. states:
+
+```{r, echo = F, message = F}
+area = read_csv("farmLandArea.csv")
+area
+```
+
+# Scatterplot of Dataset
+
+```{r, echo = F}
+ggplot(area, aes(x = land, y = farm)) +
+  
+  ## Scatter plot for farm vs land
+  geom_point()+
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+
+  ## Setting Theme 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+# Explanation
+
+We want to build a regression model for `farm`, explained by `land`, but we know Alaska is an outlier (and Texas is a leverage point, that is, one with an extreme $x$ coordinate). The normal least squares line is found by choosing the parameters $\beta_0$ and $\beta_1$ that minimize the sum of squared residuals, i.e.,
+
+$$S(\beta_0,\beta_1) = \frac{1}{n} \sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2$$
+
+An alternative to fitting a least squares line is to fit a line based on Tukey's $\rho$ norm, that is, finding the parameters $\beta_0$ and $\beta_1$ that minimize the Tukey function:
+
+$$\text{Tukey}(\beta_0,\beta_1) = \frac{1}{n} \sum_{i=1}^n \rho(y_i - \beta_0 - \beta_1 x_i)$$
+
+where $\rho(t)$ is given by
+
+\[\rho(t) = \begin{cases}
+t^2, &  |t| \leq k \\
+2 k |t| - k^2, &  |t| > k
+\end{cases}\]
+
+We'll use gradient-based methods (among others) to minimize $\text{Tukey}(\beta_0,\beta_1)$, so we'll need its gradient. We can differentiate $\rho(t)$ to get
+
+\[\rho\prime(t) = \begin{cases}
+2 t, &  |t| \leq k \\
+2 k \, \mbox{sign}(t), &  |t| > k
+\end{cases}\]
+
+which means that
+
+\[
+\frac{\partial}{\partial \beta_0} \text{Tukey}(\beta_0,\beta_1) = - \frac{1}{n} \sum_{i=1}^n \rho\prime (y_i - \beta_0 - \beta_1 x_i)
+\]
+
+\[
+\frac{\partial}{\partial \beta_1} \text{Tukey}(\beta_0,\beta_1) = - \frac{1}{n} \sum_{i=1}^n x_i \rho\prime (y_i - \beta_0 - \beta_1 x_i)
+\]
+
+# Implementation
+
+```{r}
+## Function for Tukey's rho norm given above
+## k: fixed and chosen, t: y[i] - beta0 - beta1*x[i]
+rho = function(t, k)
+{
+  return (ifelse(abs(t) <= k, t^2, 2*k*abs(t) - k^2))
+}
+
+## Function for Tukey(beta) given above
+## Estimated parameter: beta = c(beta0, beta1)
+## Fixed and observable parameters: x, y
+Tukey = function(beta, x, y)
+{
+  obj.fun = 0
+  n = length(x)
+  
+  for (i in 1:n)
+  {
+    obj.fun = obj.fun + rho(y[i] - beta[1] - beta[2]*x[i], k)
+  }
+  
+  return (1/n * obj.fun)
+}
+
+## Derivative of Tukey's rho norm w.r.t t given above
+rho.prime = function(t, k) 
+{
+  return (ifelse(abs(t) <= k, 2*t, 2*k*sign(t)))
+}
+
+## Derivative of Tukey function w.r.t beta = c(beta0, beta1)
+## returns partial derivative w.r.t beta0 and beta1
+Tukey.gr = function(par, x, y)
+{
+  dT.db0 = 0
+  dT.db1 = 0
+  n = length(x)
+  
+  for (i in 1:n)
+  {
+    dT.db0 = dT.db0 + rho.prime(y[i] - par[1] - par[2] * x[i], k)
+    dT.db1 = dT.db1 + (x[i] * rho.prime(y[i] - par[1] - par[2] * x[i], k))
+  }
+  return (c(-1/n * dT.db0, -1/n * dT.db1))
+}
+```
+
+## Fitting linear least square regression line using `lm()`
+
+```{r}
+## Estimates of ordinary least squares regression line using lm()
+summary(lm(area$farm ~ area$land))$coefficients[,'Estimate']
+
+## Extracting linear least squares coefficients from lm() summary
+beta_0 = summary(lm(area$farm ~ 
+                    area$land))$coefficients['(Intercept)', 
+                                             'Estimate']
+
+beta_1 = summary(lm(area$farm ~ 
+                    area$land))$coefficients['area$land', 
+                                             'Estimate']
+
+beta_lm = c(beta_0, beta_1)
+```
+
+```{r, message = F, echo = F}
+sprintf('The Beta coefficient vector for Normal Least Squares Regression line using lm is (%f, %f)', beta_lm[1], beta_lm[2])
+```
+
+```{r, echo = F}
+ggplot(area, aes(x = land, y = farm)) +
+  
+  ## Scatter plot for farm vs land
+  geom_point()+
+  
+  ## Adding limegreen line for Normal Least Squares Regression Line
+  geom_abline(intercept = beta_lm[1], 
+              slope = beta_lm[2],
+              color = 'limegreen') +
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+  
+  ## Annotating limegreen Equation for Normal Least Squares Regression Line
+  annotate("text", 
+           x = 5e+05, 
+           y = 75000, 
+           label= sprintf("y = %.3f + %.3f(x)", 
+                          round(beta_lm[1], 3), 
+                          round(beta_lm[2], 3)), 
+           color = 'limegreen',
+           fontface = 'bold') +
+
+  ## Setting Theme 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Estimating $\beta_0$ and $\beta_1$ using the Nelder-Mead method in `optim()` with the initial parameters `c(0 ,0)`
+
+```{r, message = F}
+k = 19000
+
+## Optimizing Tukey using Nelder-Mead optimization (no gradient used)
+rlm_nm_opt = optim(par = c(0, 0), 
+                fn = Tukey, 
+                #gr = Tukey.gr,
+                x = area$land, 
+                y = area$farm, 
+                method = 'Nelder-Mead',
+                lower = -Inf,
+                upper = Inf)
+rlm_nm_opt
+```
+
+```{r, message = F, echo = F}
+sprintf('The Beta coefficient vector for Robust Regression line using Nelder-Mead is (%f, %f)', rlm_nm_opt$par[1], rlm_nm_opt$par[2])
+```
+
+```{r, echo = F}
+ggplot(area, aes(x = land, y = farm)) + 
+  
+  geom_point()+
+  
+  ## Adding navyblue line for Nelder-Mead Robust Regression Line 
+  geom_abline(intercept = rlm_nm_opt$par[1], 
+              slope = rlm_nm_opt$par[2],
+              color = 'navyblue') +
+  
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+  
+  ## Annotating navyblue Equation for Nelder-Mead Robust Regression Line
+  annotate("text", 
+           x = 5e+05, 
+           y = 1.7e+05, 
+           label= sprintf("y = %.3f + %.3f(x)", 
+                          round(rlm_nm_opt$par[1], 3), 
+                          round(rlm_nm_opt$par[2], 3)), 
+           color = 'navyblue',
+           fontface = 'bold') +
+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Estimating $\beta_0$ and $\beta_1$ using the BFGS method in `optim()` with the initial parameters `c(0 ,0)`
+
+```{r}
+## Optimizing Tukey using BFGS optimization (gradient used)
+rlm_bfgs_opt = optim(par = c(0, 0), 
+                fn = Tukey,
+                gr = Tukey.gr,
+                x = area$land, 
+                y = area$farm, 
+                method = 'BFGS',
+                lower = -Inf,
+                upper = Inf)
+rlm_bfgs_opt
+```
+
+```{r, message = F, echo = F}
+sprintf('The Beta coefficient vector for Robust Regression line using BFGS is (%f, %f)', rlm_bfgs_opt$par[1], rlm_bfgs_opt$par[2])
+```
+
+```{r, echo = F}
+ggplot(area, aes(x = land, y = farm)) +
+  
+  geom_point()+
+  
+  ## Adding black line for BFGS Robust Regression Line 
+  geom_abline(intercept = rlm_bfgs_opt$par[1], 
+              slope = rlm_bfgs_opt$par[2],
+              color = 'black') +
+  
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+  
+  ## Annotating black Equation for BFGS Robust Regression Line
+  annotate("text", 
+           x = 5e+05, 
+           y = 1.4e+05, 
+           label= sprintf("y = %.3f + %.3f(x)", 
+                          round(rlm_bfgs_opt$par[1], 3), 
+                          round(rlm_bfgs_opt$par[2], 3)), 
+           color = 'black',
+           fontface = 'bold') +
+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Estimating $\beta_0$ and $\beta_1$ using the CG method in `optim()` with the initial parameters `c(0 ,0)`
+
+```{r}
+## Optimizing Tukey using CG optimization (gradient used)
+rlm_cg_opt = optim(par = c(0, 0), 
+                fn = Tukey,
+                gr = Tukey.gr,
+                x = area$land, 
+                y = area$farm, 
+                method = 'CG',
+                lower = -Inf,
+                upper = Inf)
+rlm_cg_opt
+```
+
+```{r, message = F, echo = F}
+sprintf('The Beta coefficient vector for Robust Regression line using CG is (%f, %f)', rlm_cg_opt$par[1], rlm_cg_opt$par[2])
+```
+
+```{r, echo = F}
+ggplot(area, aes(x = land, y = farm)) + 
+  
+  geom_point()+
+  
+  ## Adding coral dashed line for CG Robust Regression Line 
+  geom_abline(intercept = rlm_cg_opt$par[1], 
+              slope = rlm_cg_opt$par[2],
+              color = 'coral',
+              linetype = 'dashed') +
+  
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+  
+  ## Annotating coral Equation for BFGS Robust Regression Line
+  annotate("text", 
+           x = 4.3e+05, 
+           y = 2e+05, 
+           label= sprintf("y = %.3f + %.3f(x)", 
+                          round(rlm_cg_opt$par[1], 3), 
+                          round(rlm_cg_opt$par[2], 3)), 
+           color = 'coral',
+           fontface = 'bold') +
+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Summary and Conclusion
+
+```{r, echo = F}
+## Taking latest plot with all 4 regression lines
+ggplot(area, aes(x = land, y = farm)) + 
+  
+  ## Scatter plot for farm vs land
+  geom_point()+
+  
+  ## Adding limegreen line for Normal Least Squares Regression Line
+  geom_abline(aes(intercept = beta_lm[1], 
+              slope = beta_lm[2],
+              color = 'Normal Least Squares Regression',
+              linetype = 'Normal Least Squares Regression')) +
+  
+  ## Adding navyblue line for Nelder-Mead Robust Regression Line
+  geom_abline(aes(intercept = rlm_nm_opt$par[1], 
+              slope = rlm_nm_opt$par[2],
+              color = 'Robust Regression Nelder-Mead',
+              linetype = 'Robust Regression Nelder-Mead')) +
+  
+  ## Annotating black Equation for BFGS Robust Regression Line
+  geom_abline(aes(intercept = rlm_bfgs_opt$par[1], 
+              slope = rlm_bfgs_opt$par[2],
+              color = 'Robust Regression BFGS',
+              linetype = 'Robust Regression BFGS')) +
+  
+  ## Adding coral dashed line for CG Robust Regression Line
+  geom_abline(aes(intercept = rlm_cg_opt$par[1], 
+              slope = rlm_cg_opt$par[2],
+              color = 'Robust Regression CG',
+              linetype = 'Robust Regression CG')) +
+  
+  ## Adding Legend (with aes for color and linetype)
+  scale_color_manual("Legend", breaks = c('Normal Least Squares Regression',
+                                          'Robust Regression Nelder-Mead',
+                                          'Robust Regression BFGS',
+                                          'Robust Regression CG'),
+                                values = c('Normal Least Squares Regression' = 'limegreen', 
+                                           'Robust Regression Nelder-Mead' = 'navyblue',
+                                           'Robust Regression BFGS' = 'black',
+                                           'Robust Regression CG' = 'coral')) +
+  
+  scale_linetype_manual("Legend", breaks = c('Normal Least Squares Regression',
+                                        'Robust Regression Nelder-Mead',
+                                        'Robust Regression BFGS',
+                                        'Robust Regression CG'),
+                               values = c('Normal Least Squares Regression' = 'solid', 
+                                         'Robust Regression Nelder-Mead' = 'solid',
+                                         'Robust Regression BFGS' = 'solid',
+                                         'Robust Regression CG' = 'dashed')) +
+  
+  ## Creating Titles for main, x-axis, and y-axis
+  ggtitle('Farm vs. Land') + 
+  xlab('Land') + 
+  ylab('Farm') + 
+
+  ## Setting Theme 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+```{r, echo = F}
+summary = data.frame(method = c("Robust Regression Nelder-Mead",
+                                 "Robust Regression BFGS",
+                                 "Robust Regression CG"),
+                     intercept = c(rlm_nm_opt$par[1],
+                                   rlm_bfgs_opt$par[1],
+                                   rlm_cg_opt$par[2]),
+                     slope = c(rlm_nm_opt$par[2], 
+                               rlm_bfgs_opt$par[2], 
+                               rlm_cg_opt$par[2]),
+                     values = c(rlm_nm_opt$value, 
+                                rlm_bfgs_opt$value, 
+                                rlm_cg_opt$value))
+summary
+```
+
+```{r, echo = F}
+sprintf(paste0("The method for which the value of Tukey function is the smallest is ", summary$method[which.min(summary$values)], " with the value %f"), summary$values[which.min(summary$values)])
+```
+
+
+When we create a plot of the $\rho(t)$ function (using `curve()`) over the interval $t \in (-100000,100000)$, we can see that:
+
+```{r, echo=F}
+# Temporary rho function with k = 19000 fixed
+temp_rho = function(t, k = 19000)
+{
+  return (ifelse(abs(t) <= k, t^2, 2*k*abs(t) - k^2))
+}
+
+# Plotting rho(t) where t in (-1e+05, 1e+05)
+curve(temp_rho, 
+      from = -1e+05, 
+      to = 1e+05, 
+      main = 'Tukey rho norm for -1e+05 <= t <= 1e+05 and k = 19000', 
+      xlab = 't', 
+      ylab = 'rho(t,k)')
+```
+
+The SSE loss function is greatly influenced by outliers due to the 'square' component of errors. Small number outliers will have large magnitude change in SSE and thus influence the regression line as can be seen by the limegreen color ordinary regression line.
+
+One way to control this type of influence by outliers is to instead use absolute values rather than squares for our loss function. This allows the small number of outliers to have a lesser magnitude change in absolute loss function compared SSE loss function and is thus more robust. However, the drawback with this is that absolute function are not differentiable at their minimum (due to sharp turn) and thus optimization becomes extremely tedious due to non-convergence issues.
+
+Therefore, in order to achieve the robustness of absolute loss function, as well as the differentiable aspect of SSE, the Tukey's rho norm comes in to play as it follows the SSE loss function for small values of $t$ and constant times $|t|$ for large values of $t$ (large and small values determined by $k$ which is fixed).
+
+Plotting the derivative of Tukey's rho norm (rho.prime), we can see that the function is differentiable throughout, and therefore gradient optimization can be used effectively.
+
+```{r, echo=F}
+# Temporary rho.prime function with k = 19000 fixed
+temp_rho.prime = function(t, k = 19000)
+{
+  return (ifelse(abs(t) <= k, 2*t, 2*k*sign(t)))
+}
+
+# Plotting rho(t) where t in (-1e+05, 1e+05)
+curve(temp_rho.prime, 
+      from = -1e+05, 
+      to = 1e+05, 
+      main = 'Tukey rho.prime for -1e+05 <= t <= 1+05 and k = 19000', 
+      xlab = 't', 
+      ylab = 'rho.prime(t,k)')
+```
