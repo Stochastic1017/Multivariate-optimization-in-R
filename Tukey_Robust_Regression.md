@@ -23,10 +23,6 @@ all U.S. states:
     ## 10 Georgia      57906 16094
     ## # ℹ 40 more rows
 
-# Scatterplot of Dataset
-
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
-
 # Explanation
 
 We want to build a regression model for `farm`, explained by `land`, but
@@ -143,8 +139,6 @@ beta_lm = c(beta_0, beta_1)
 
     ## [1] "The Beta coefficient vector for Normal Least Squares Regression line using lm is (18452.421461, 0.145676)"
 
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
-
 ## Estimating $\beta_0$ and $\beta_1$ using the Nelder-Mead method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
@@ -180,8 +174,6 @@ rlm_nm_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using Nelder-Mead is (0.114955, 0.398889)"
 
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
-
 ## Estimating $\beta_0$ and $\beta_1$ using the BFGS method in `optim()` with the initial parameters `c(0 ,0)`
 
 ``` r
@@ -214,8 +206,6 @@ rlm_bfgs_opt
     ## NULL
 
     ## [1] "The Beta coefficient vector for Robust Regression line using BFGS is (5134.209242, 0.324530)"
-
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ## Estimating $\beta_0$ and $\beta_1$ using the CG method in `optim()` with the initial parameters `c(0 ,0)`
 
@@ -250,11 +240,7 @@ rlm_cg_opt
 
     ## [1] "The Beta coefficient vector for Robust Regression line using CG is (0.000334, 0.398933)"
 
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
-
 ## Summary and Conclusion
-
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
     ##                          method    intercept     slope    values
     ## 1 Robust Regression Nelder-Mead    0.1149554 0.3988888 447645184
@@ -262,11 +248,6 @@ rlm_cg_opt
     ## 3          Robust Regression CG    0.3989329 0.3989329 447645463
 
     ## [1] "The method for which the value of Tukey function is the smallest is Robust Regression BFGS with the value 441085792.843601"
-
-When we create a plot of the $\rho(t)$ function (using `curve()`) over
-the interval $t \in (-100000,100000)$, we can see that:
-
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 The SSE loss function is greatly influenced by outliers due to the
 ‘square’ component of errors. Small number outliers will have large
@@ -286,9 +267,3 @@ as well as the differentiable aspect of SSE, the Tukey’s rho norm comes
 in to play as it follows the SSE loss function for small values of $t$
 and constant times $|t|$ for large values of $t$ (large and small values
 determined by $k$ which is fixed).
-
-Plotting the derivative of Tukey’s rho norm (rho.prime), we can see that
-the function is differentiable throughout, and therefore gradient
-optimization can be used effectively.
-
-![](Tukey_Robust_Regression_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
