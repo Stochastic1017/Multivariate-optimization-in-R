@@ -1,9 +1,4 @@
-Example of single variable one-dimensional optimization
-================
-S. Sudhir
-2023-08-17
-
-# One-dimensional optimization
+# 1. Example of single variable one-dimensional optimization
 
 An object subject to linear drag due to air resistance is projected
 upward at a specified velocity. Its altitude $z$ is modeled as a
@@ -48,7 +43,6 @@ altitude.fun <- function(time, alt.init, mass, drag, vel.init, g)
 
 ## Graph of function
 
-![](single-variable-optim_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ## Time when object strikes the ground
 
@@ -78,8 +72,6 @@ print(paste0("Time it takes for the object to reach the ground is: ",
 
     ## [1] "Time it takes for the object to reach the ground is: 11.614 seconds"
 
-![](single-variable-optim_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
-
 ## Find the object’s maximum height
 
 ``` r
@@ -100,10 +92,7 @@ print(paste0("The maximum height the object reaches is : ",
 
     ## [1] "The maximum height the object reaches is : 192.861 meters"
 
-![](single-variable-optim_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
-
 ## Find the time at which the object reaches its maximum height
 
     ## [1] "Time it takes for the object to reach the maximum height is: 3.833 seconds"
 
-![](single-variable-optim_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
