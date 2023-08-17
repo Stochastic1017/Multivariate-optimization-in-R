@@ -1,12 +1,20 @@
 # Multivariate Optimization in R
 
 **The repository contains various instances of optimization using R:**
-* Visual optimization of a multivariate function
-* Tukey's robust regression
-* Exponential smoothing for time-series data
-* Maximum likelihood estimator (MLE) in logistic regression
+1. Example of single variable one-dimensional optimization
+2. Example of multi-dimensional optimization
+3. Visual optimization of a multivariate function
+4. Optimization for Tukey's robust regression
+5. Optimization for exponential smoothing for time-series data
+6. Optimization for Maximum likelihood estimator (MLE)
+   * MLE for mean and standard deviation of a random sample from $N(\mu, \sigma)$
+   * MLE for the parameters $\beta_0$ and $\beta_1$ in logistic regression
 
-# Visual optimization of a multivariate function:
+# 1. Example of single variable one-dimensional optimization:
+
+# 2. Example of multi-dimensional optimization:
+
+# 3. Visual optimization of a multivariate function:
 
 This repository contains R code to optimize and finds all local maxima's for the function:
 $$z = f(x,y) = \big(1 - \frac{x}{k}\big)\big(1 + \frac{x}{k}\big)\big(1 - \frac{y}{k}\big)\big(1 + \frac{y}{k}\big)\bigg[ -(y+47)sin\bigg(\sqrt{|y + \frac{x}{2} + 47|}\bigg) - xsin\big(\sqrt{|x - (y + 47)|}\big) \bigg]$$
@@ -19,7 +27,7 @@ The code does the following:
 
 <img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/Function_image.png" width="500" height="500">
 
-# Tukey's robust regression
+# 4. Tukey's robust regression:
 
 ## Head of Dataset
 
@@ -298,7 +306,7 @@ in to play as it follows the SSE loss function for small values of $t$
 and constant times $|t|$ for large values of $t$ (large and small values
 determined by $k$ which is fixed).
 
-# Exponential smoothing for time-series data
+# 5. Exponential smoothing for time-series data
 
 Consider the `nhtemp` dataset which holds yearly average measurements of
 temperature for New Hampshire, from 1912 to 1971
@@ -386,9 +394,9 @@ FE_opt
 
 <img src="https://github.com/Stochastic1017/Multivariate-optimization-in-R/blob/main/Images/All_TS.png" width="400" height="300">
 
-# Optimization for Maximum Likelihood Estimation
+# 6. Optimization for Maximum Likelihood Estimation (MLE):
 
-## MLE for mean and standard deviation of a random sample from $N(\mu, \sigma)$
+## 6(a.) MLE for mean and standard deviation of a random sample from $N(\mu, \sigma)$
 
 Here we’ll use optimization to confirm that, given a simple random
 sample $X_1, \ldots, X_n \sim N(\mu, \sigma^2)$, the maximum-likelihood
@@ -495,7 +503,7 @@ population sd under the normal distribution, we can deduce with
 certainty that the MLE for mean and sd of a random distribution is
 approximately the sample mean and population sd.
 
-## MLE for the parameters $\beta_0$ and $\beta_1$ in logistic regression
+## 6(b.) MLE for the parameters $\beta_0$ and $\beta_1$ in logistic regression:
 
 In simple logistic regression, we have a numeric explanatory variable
 $X$ and binary response variable $Y$ that takes one of two values, 0
