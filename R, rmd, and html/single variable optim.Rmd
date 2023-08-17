@@ -1,0 +1,199 @@
+---
+title: "Example of single variable one-dimensional optimization"
+author: "S. Sudhir"
+date: "2023-08-17"
+output: html_document
+---
+
+```{r, setup = TRUE, message = F, include = F}
+knitr::opts_chunk$set(fig.width = 9, fig.height = 6) 
+```
+
+# One-dimensional optimization
+
+An object subject to linear drag due to air resistance is projected upward at a specified velocity.
+Its altitude $z$ is modeled as a function of time $t$ as:
+
+$$z(t) = z_0 + \frac{m}{c}\bigg(v_0 + \frac{mg}{c}\bigg)\bigg(1 - e^{\frac{-c}{m}t}\bigg) - \frac{mg}{c}t$$
+
+where:
+
+$z:$ altitude (in m) above Earth’s surface (which has $z = 0$)
+
+$z_0:$ initial altitude (in m)
+
+$m:$ mass (in kg)
+
+$c:$ Linear Drag Coefficient (in kg/s)
+
+$v_0:$ initial velocity (in m/s) where positive velocity is up
+
+$t:$ time (in s)
+
+```{r}
+# Create height function with inputs for:
+
+# time: time in seconds
+# alt.init: initial altitude in meters
+# mass: mass of object in kg
+# vel.init: initial velocity in m/s
+# drag: drag coefficients in kg/s
+# g: gravity default to 9.81 m/s2
+
+altitude.fun <- function(time, alt.init, mass, drag, vel.init, g)
+{
+  altitude = alt.init + 
+             ( (mass/drag) * (vel.init + ((mass*g)/drag)) * (1 - exp((-drag/mass)*time)) ) - 
+             ( (mass*g/drag)*time )
+  
+  altitude.out = ifelse(altitude < 0, 0, altitude) # if object hits ground set value to 0
+  return(altitude.out)
+}
+```
+
+## Graph of function
+
+```{r, message = F, echo = F}
+library(ggplot2) # Library used to graph 2D functions
+
+alt.init = 100 # Initial Height
+vel.init = 55 # Initial Velocity
+mass = 80 # Mass
+drag = 15 # Linear Drag Coefficient
+g = 9.81 # Force of Gravity
+time = seq(from = 0, to = 15, by = .1) # Time from 0 to 15 seconds
+
+# Running altitude.fun for time 0 to 15 seconds
+y = altitude.fun(time, alt.init, mass, drag, vel.init, g)
+
+# Plotting Function from above for time 0 seconds to 15 seconds
+ggplot(data.frame(y, time), aes(x = time, y = y)) + 
+  geom_point() + ggtitle('Altitude vs. Time') + 
+  xlab('Time (in s)') + 
+  ylab('Altitude (in m)') + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+```
+
+## Time when object strikes the ground
+
+```{r}
+# Running For Loop to find the first instance of time when ball hits the ground, 
+# and then optimizing the function from 0 to that time t
+
+for (t in time)
+{
+  if (altitude.fun(t, alt.init, mass, drag, vel.init, g) == 0)
+  {
+    min_t = optimize(f = altitude.fun, 
+                          interval = c(0,t), 
+                          alt.init = 100, 
+                          mass = 80, 
+                          drag = 15, 
+                          vel.init = 55, 
+                          g = 9.81, 
+                          tol = 0.01)
+    break
+  }
+}
+
+print(paste0("Time it takes for the object to reach the ground is: ", 
+             sprintf(min_t$minimum, fmt = '%#.3f')," seconds"))
+```
+
+```{r, echo = F}
+# Plotting Function with minimum height indicator
+ggplot(data.frame(y, time), aes(x = time, y = y)) + 
+  geom_point() + ggtitle('Altitude vs. Time') + 
+  xlab('Time (in s)') + 
+  ylab('Altitude (in m)') + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_vline(xintercept = min_t$minimum, 
+             linetype = 'dashed', 
+             color = 'coral', 
+             linewidth = 0.8) +
+  geom_point(aes(x=min_t$minimum,
+                 y=min_t$objective), 
+             colour="coral2")  + 
+  geom_text(aes(label = round(min_t$minimum, 3), 
+                x = min_t$minimum, 
+                y = -Inf), 
+            vjust = 1.5, col = 'coral') + 
+  coord_cartesian(clip = 'off') 
+```
+
+## Find the object's maximum height
+
+```{r}
+# Using optimize to find both time and height where function reaches maximum
+max_t = optimize(f = altitude.fun, 
+                          interval = c(0,15), 
+                          alt.init = 100, 
+                          mass = 80, 
+                          drag = 15, 
+                          vel.init = 55, 
+                          g = 9.81, 
+                          tol = 0.01,
+                          maximum = TRUE)
+
+print(paste0("The maximum height the object reaches is : ", 
+             sprintf(max_t$objective, fmt = '%#.3f')," meters")) 
+```
+
+```{r, echo = F}
+# plotting graph with horizontal indicator
+ggplot(data.frame(y, time), aes(x = time, y = y)) + 
+  geom_point() + ggtitle('Altitude vs. Time') + 
+  xlab('Time (in s)') + 
+  ylab('Altitude (in m)') + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_hline(yintercept = max_t$objective, 
+             linetype = 'dashed', 
+             color = 'coral', 
+             linewidth = 0.8) +
+  geom_point(aes(x=max_t$maximum, 
+                 y=max_t$objective), 
+             colour="coral2") + 
+  geom_text(aes(label = round(max_t$objective, 3), 
+                x = 0, 
+                y = max_t$objective), 
+            vjust = 1.5, 
+            col = 'coral') + 
+  coord_cartesian(clip = 'off') 
+```
+
+## Find the time at which the object reaches its maximum height
+
+```{r, echo = F}
+print(paste0("Time it takes for the object to reach the maximum height is: ", 
+             sprintf(max_t$maximum, fmt = '%#.3f')," seconds"))
+
+# Plotting graph with vertical indicator
+ggplot(data.frame(y, time), aes(x = time, y = y)) + 
+  geom_point() + ggtitle('Altitude vs. Time') + 
+  xlab('Time (in s)') + 
+  ylab('Altitude (in m)') + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  geom_vline(xintercept = max_t$maximum, 
+             linetype = 'dashed',
+             color = 'coral', 
+             linewidth = 0.8) +
+  geom_point(aes(x=max_t$maximum,
+                 y=max_t$objective), 
+             colour="coral2") + 
+  geom_text(aes(label = round(max_t$maximum, 3), 
+                x = max_t$maximum, y = -Inf), 
+            vjust = 1.5, col = 'coral') + 
+  coord_cartesian(clip = 'off') 
+```
