@@ -25,7 +25,6 @@ concentration <- function(x, y)
 
 ## Graph the concentration in the region defined by −10 ≤ x ≤ 10 and 0 ≤ y ≤ 20.
 
-![](Multi-variable-optim_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ## Implement Gradient Descent
 
@@ -100,7 +99,6 @@ print(paste0("Maximum value of ",
 
     ## [1] "Maximum value of 8.137 found at coordinates (0.854,6.374)"
 
-![](Multi-variable-optim_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ## Using `optim()` to solve the same problem with method=“Nelder-Mead” and provide fn but not gr
 
@@ -129,8 +127,6 @@ print(paste0("Maximum value of ",
 
     ## [1] "Maximum value of 8.625 found at coordinates (0.853,6.376) in 51 iterations"
 
-![](Multi-variable-optim_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
-
 ## Use `optim()` to solve the same problem with method=“BFGS”, which approximates Newton’s method, providing fn and gr
 
 ``` r
@@ -152,8 +148,6 @@ print(paste0("Maximum value of ",
 ```
 
     ## [1] "Maximum value of 8.625 found at coordinates (0.853,6.371) in 10 iterations"
-
-![](Multi-variable-optim_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 ## Conclusion
 
