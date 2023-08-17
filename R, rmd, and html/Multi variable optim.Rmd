@@ -1,0 +1,221 @@
+---
+title: "Example of multi-dimensional optimization"
+author: "S. Sudhir"
+date: "2023-08-17"
+output: html_document
+---
+
+```{r, setup = TRUE, message = F, include = F}
+knitr::opts_chunk$set(fig.width = 9, fig.height = 6) 
+```
+
+The two-dimensional distribution of pollutant concentration in a channel can be described by:
+
+$$z = \text{concentration}(x,y) = 7.9 + 0.13x + 0.21y - 0.05x^2 - 0.016y^2 - 0.007xy$$
+
+```{r}
+# Create two-dimensional function of pollutant concentration in a channel
+concentration <- function(x, y)
+{
+  result = 7.9 + 
+           0.13*x +
+           0.21*y -
+           0.05*x^2 -
+           0.016*y^2 -
+           0.007*x*y
+  
+  return(result)
+}
+```
+
+## Graph the concentration in the region defined by −10 ≤ x ≤ 10 and 0 ≤ y ≤ 20.
+
+```{r, echo = F, message = F}
+library(plotly)
+
+x <- c(-10:10)
+y <- c(0:20)
+z <- outer(x, y, concentration)
+
+axx <- list(
+  nticks = 4,
+  range = c(-10,10)
+)
+
+axy <- list(
+  nticks = 4,
+  range = c(0,20)
+)
+
+fig <- plot_ly(x = ~x, y = ~y, z = ~z, 
+               type = 'mesh3d', 
+               showscale = FALSE) %>% 
+        add_surface(
+              contours = list(
+                        z = list(
+                              show=TRUE,
+                              usecolormap=TRUE,
+                              highlightcolor="#ff0000",
+                              project = list(z = TRUE)
+  )
+ )
+)
+
+fig <- fig %>% layout(scene = list(xaxis=axx, yaxis=axy))
+fig <- fig %>%
+  layout(
+    scene = list(
+      xaxis = list(title = "x"),
+      yaxis = list(title = "y"),
+      zaxis = list(title = "z = concentration(x,y)")
+    )
+  )
+
+fig
+```
+
+## Implement Gradient Descent
+
+```{r}
+# First Derivative of Function
+gradient.concentration = function(par) 
+{
+  x = par[1]
+  y = par[2]
+  df.dx = 0.13 - 0.1*x - 0.007*y
+  df.dy = 0.21 - 0.032*y - 0.007*x
+  return(c(df.dx, df.dy))
+}
+
+# Adapting gradient.descent() from notes
+gradient.descent = function(par, gr, gamma = 10, epsilon = .0001, 
+n= 30,verbose = FALSE, ...)
+{
+  for (i in seq_len(n)) {
+    gradient = gr(par, ...)
+    par = par + gamma * gradient
+    gradient.size = sum(abs(gradient))
+    if (verbose) {
+      cat(sep = "", "i = ", i, ", par = c(", paste(signif(par, 4), 
+                                                   collapse = ","),
+          "), gradient = c(", paste(signif(gradient, 4), collapse = ","),
+          "), size = ", signif(gradient.size, 4), "\n")
+    }
+    if (gradient.size < epsilon) {
+      break
+    }
+  }
+  return(par)
+}
+
+grad.des = gradient.descent(par = c(0,0), gr = gradient.concentration, verbose = TRUE)
+grad.des.max = concentration(grad.des[1], grad.des[1])
+
+print(paste0("Maximum value of ", 
+             sprintf(grad.des.max, fmt = '%#.3f'), 
+             " found at coordinates (", 
+             sprintf(grad.des[1], fmt = '%#.3f'),
+             ",", 
+             sprintf(grad.des[2], fmt = '%#.3f'),")"))
+
+```
+
+```{r, message = F, warning = F, echo = F}
+# Adding Peak Concentration Point using Gradient Descent
+fig1 <- fig %>% add_trace(x = grad.des[1],
+                         y = grad.des[2], 
+                         z = grad.des.max, 
+                         mode = "markers", 
+                         type = "scatter3d", 
+                         marker = list(size = 5, 
+                                       color = "red", 
+                                       symbol = 104,
+                                       opacity = 0.5))
+
+fig1
+```
+
+## Using `optim()` to solve the same problem with method="Nelder-Mead" and provide fn but not gr
+
+```{r}
+#placeholder function to use concentration function with vector input
+pfc <- function(x)
+{     
+  return(concentration(x[1], x[2]))
+}
+
+#Nelder-Mead Function
+out1.pfc = optim(par = c(mean(x),mean(y)), 
+                 fn = pfc, 
+                 control = list(fnscale = -1), 
+                 method = "Nelder-Mead")
+
+#Format and print result
+print(paste0("Maximum value of ", 
+             sprintf(out1.pfc$value, fmt = '%#.3f'), 
+             " found at coordinates (", 
+             sprintf(out1.pfc$par[1], fmt = '%#.3f'), 
+             ",", 
+             sprintf(out1.pfc$par[2], fmt = '%#.3f'),") in ",
+             out1.pfc$counts[1], " iterations"))
+```
+
+```{r, message = F, warning = F, echo = F}
+# Adding Peak Concentration Point using Nelder-Mead with fn but not gr
+fig2 <- fig1 %>% add_trace(x = out1.pfc$par[1],
+                         y = out1.pfc$par[2], 
+                         z = out1.pfc$value, 
+                         mode = "markers", 
+                         type = "scatter3d", 
+                         marker = list(size = 5, 
+                                       color = "blue", 
+                                       symbol = 104,
+                                       opacity = 0.5))
+
+fig2
+```
+
+## Use `optim()` to solve the same problem with method="BFGS", which approximates Newton’s method, providing fn and gr
+
+```{r}
+#BFGS Function
+out2.pfc = optim(par = c(mean(x),mean(y)),
+                 fn = pfc,  
+                 gr = gradient.concentration, 
+                 control = list(fnscale=-1), 
+                 method = "BFGS")
+
+#Format and print result
+print(paste0("Maximum value of ", 
+             sprintf(out2.pfc$value, fmt = '%#.3f'), 
+             " found at coordinates (", 
+             sprintf(out2.pfc$par[1], fmt = '%#.3f'), 
+             ",", 
+             sprintf(out2.pfc$par[2], fmt = '%#.3f'),") in ",
+             out2.pfc$counts[1], " iterations"))
+```
+
+```{r, message = F, warning = F, echo = F}
+# Adding Peak Concentration Point using BFGS with fn and gr
+fig3 <- fig2 %>% add_trace(x = out2.pfc$par[1],
+                         y = out2.pfc$par[2], 
+                         z = out2.pfc$value, 
+                         mode = "markers", 
+                         type = "scatter3d", 
+                         marker = list(size = 5, 
+                                       color = "green", 
+                                       symbol = 104,
+                                       opacity = 0.5))
+
+fig3
+```
+
+## Conclusion
+
+The Nelder-Mead method resulted in 51 iterations, whereas the BFGS method resulted in 10 iterations.
+
+The “Nelder-Mead” method is simple optimization algorithm that does not require the calculation of gradients, so it can be efficient low-dimensional functions that are expensive to compute gradients for.
+
+The “BFGS” method is quasi-Newton method that approximates the Hessian matrix of the function, and it is more powerful for high-dimensional functions that have a smooth Hessian.
+
+Since we had a higher dimensional case, we had less iteration for “BFGS” method.
