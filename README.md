@@ -987,7 +987,7 @@ y1 = c(menarche.cases$reached.menarche)
 id1 = rep('menarche.cases', nrow(menarche.cases))
 ```
 
-The 25 points $(x_i, y_i)$ where $x_i$ is the $i$th age in the original
+The 25 points $(x_i, y_i)$ where $x_i$ is the i-th age in the original
 `menarche` data frame, and $y_i$ is the proportion of girls of that age
 who have reached menarche.
 
