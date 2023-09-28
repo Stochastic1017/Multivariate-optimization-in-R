@@ -653,7 +653,7 @@ df1 = data.frame(year = 1912:1971, avg.temp = nhtemp)
 We want to fit an exponential smoothing model to this data such that
 $\hat{Y}_1 = Y_1$ and, for $i = 2, 3, \ldots, n$,
 
-$$Y_i = \beta Y_{i-1} + (1-\beta) Y_{i-1}$$
+$$Y_i = \beta Y_{i-1} + (1-\beta) \hat{Y}_{i-1}$$
 
 where $\beta$ is a constant between 0 and 1.
 
