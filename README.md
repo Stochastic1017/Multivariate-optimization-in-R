@@ -68,13 +68,13 @@ for (t in time)
   if (altitude.fun(t, alt.init, mass, drag, vel.init, g) == 0)
   {
     min_t = optimize(f = altitude.fun, 
-                          interval = c(0,t), 
-                          alt.init = 100, 
-                          mass = 80, 
-                          drag = 15, 
-                          vel.init = 55, 
-                          g = 9.81, 
-                          tol = 0.01)
+                     interval = c(0,t), 
+                     alt.init = 100, 
+                     mass = 80, 
+                     drag = 15, 
+                     vel.init = 55, 
+                     g = 9.81, 
+                     tol = 0.01)
     break
   }
 }
@@ -92,14 +92,14 @@ print(paste0("Time it takes for the object to reach the ground is: ",
 ``` r
 # Using optimize to find both time and height where function reaches maximum
 max_t = optimize(f = altitude.fun, 
-                          interval = c(0,15), 
-                          alt.init = 100, 
-                          mass = 80, 
-                          drag = 15, 
-                          vel.init = 55, 
-                          g = 9.81, 
-                          tol = 0.01,
-                          maximum = TRUE)
+                 interval = c(0,15), 
+                 alt.init = 100, 
+                 mass = 80, 
+                 drag = 15, 
+                 vel.init = 55, 
+                 g = 9.81, 
+                 tol = 0.01,
+                 maximum = TRUE)
 
 print(paste0("The maximum height the object reaches is : ", 
              sprintf(max_t$objective, fmt = '%#.3f')," meters")) 
